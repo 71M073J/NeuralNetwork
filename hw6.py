@@ -20,15 +20,21 @@ def ReLU(x):
 def SoftMaxBack(y, err):
     #SM = y.reshape((-1, 1))
     #jac = np.diagflat(y) - np.dot(SM, SM.T)
-    #err.dot((np.eye(y.shape[0]) - y.T.dot(y)))
+    #err.dot((np.eye(y.shape[0]) - y.T.dot(y)))?
     return err.dot(np.diagflat(y) - y.T.dot(y))
 
 
 def SoftMax(x):
     x_exp = np.exp(x - np.max(x))
-    r = x_exp / np.sum(x_exp, axis=0)
+    r = x_exp.T / np.sum(x_exp, axis=1)
     #r[r == np.nan] = 0
-    return r
+    return r.T
+
+def Linear(x):
+    return x
+
+def LinearBack(y, err):
+    return err
 
 class NN:
     def __init__(self, n_hidden_layers, layer_size, input_size, output_size, classification=False,
@@ -50,7 +56,7 @@ class NN:
                 self.layers.append(Layer(layer_size, layer_size, self.activation, self.activation_back, self.lr, self.batch_size))
             #self.layers.append(Layer(layer_size, output_size, self.activation, self.activation_back, self.lr))
             #self.layers.append(Layer(layer_size, output_size, SoftMax, SoftMaxBack, self.lr, self.batch_size))
-            self.layers.append(Layer(layer_size, output_size, Sigmoid, SigmoidBack, self.lr, self.batch_size))
+            self.layers.append(Layer(layer_size, output_size, Linear, LinearBack, self.lr, self.batch_size))
         else:
             self.layers.append(Layer(input_size, output_size, Sigmoid, SigmoidBack, self.lr))
     def forward(self, input_data):
@@ -67,12 +73,15 @@ class NN:
     def train(self, X, y, n_epochs, test=None):
         for epoch in range(n_epochs):
             if epoch % 100 == 0: print(f"epoch {epoch}")
+            #else: print(epoch, end="")
             for i in range((len(y) // self.batch_size) + 1):
                 if i * self.batch_size == len(y): break
                 to = (i + 1) * self.batch_size if (i + 1) * self.batch_size < len(y) else len(y)
                 X_train = X[i * self.batch_size:to, :]
                 prediction = self.forward(X_train)
-                self.backward((y[i * self.batch_size:to] - prediction.T).T)
+                #za regresijo
+                self.backward((y[i * self.batch_size:to] - prediction.T).T) # odvod MSE
+                #self.backward(delta_cross_entropy(prediction, y[i * self.batch_size:to]))
 
 
 class Layer:
@@ -108,6 +117,7 @@ class Layer:
 if __name__ == "__main__":
     data = np.random.randint(-5, 5, (5024, 2))
     y = (data[:, 0] + data[:,1]) > 1
+    y = data.sum(axis=1)
     #data = np.array([[1,2],[2,3],[3,4],[4,5]])
     #y = np.array((0,0,1,1))
     # input = np.array([[1, 2]])
@@ -123,7 +133,7 @@ if __name__ == "__main__":
     #print(net.forward(np.array([[2, 0],[1,0],[0,2], [0,4], [0,3],[4,0],[3,0]])))
 
     #quit()
-    net = NN(3,25,2, 1, lr=0.7)
+    net = NN(1,10,2, 1, lr=100)
     data = np.array([[0, 0],
                    [0, 1],
                    [1, 0],
