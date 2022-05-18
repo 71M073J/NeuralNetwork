@@ -222,3 +222,6 @@ if __name__ == "__main__":
     m = fitter.fit(X, hard_y)
     pred = m.predict(X)
     np.testing.assert_allclose(pred, hard_y, atol=0.01)
+    #https: // www.adeveloperdiary.com / data - science / deep - learning / neural - network - with-softmax - in -python /
+    https: // medium.com / @ neuralthreads / backpropagation - made - super - easy -
+    for -you - part - 2 - 7b2a06f25f3c
