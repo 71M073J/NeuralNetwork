@@ -2,10 +2,14 @@ import numpy as np
 
 
 def Sigmoid(x):
-    return 1/(1 + np.exp(-x))
+    return 1 / (1 + np.exp(-x))
+
 
 def SigmoidBack(y, err):
-    return err * (y * (1 - y))
+    #return err * (y * (1 - y))
+    sig = Sigmoid(y)
+    return err * (sig * (1 - sig))
+
 
 def ReLUBackward(y, err):
     return err * (y > 0)
@@ -28,7 +32,7 @@ def SoftMaxBack(y, err):
 def SoftMax(x):
     x_exp = np.exp(x - np.max(x, axis=0))
     r = x_exp.T / np.sum(x_exp, axis=0)
-    r[r == np.nan] = 0
+    #r[r == np.nan] = 0
     return r
 
 def cross_E(y_true, y_pred):  # CE
@@ -57,9 +61,9 @@ class NN:
         self.layers.append(Layer(input_size, layer_size, self.activation, self.activation_back, self.lr))
         for i in range(n_hidden_layers - 1):
             self.layers.append(Layer(layer_size, layer_size, self.activation, self.activation_back, self.lr))
-        #self.layers.append(Layer(layer_size, output_size, self.activation, self.activation_back, self.lr))
-        self.layers.append(Layer(layer_size, output_size, SoftMax, SoftMaxBack, self.lr))
-        #self.layers.append(Layer(layer_size, output_size, Sigmoid, SigmoidBack, self.lr))
+        # self.layers.append(Layer(layer_size, output_size, self.activation, self.activation_back, self.lr))
+        # self.layers.append(Layer(layer_size, output_size, SoftMax, SoftMaxBack, self.lr))
+        self.layers.append(Layer(layer_size, output_size, Sigmoid, SigmoidBack, self.lr))
 
     def forward(self, input_data):
         temp = input_data.copy()
@@ -80,15 +84,19 @@ class NN:
                 to = (i + 1) * self.batch_size if (i + 1) * self.batch_size < len(y) else len(y)
                 X_train = X[i * self.batch_size:to, :]
                 prediction = self.forward(X_train)
+                #true = y[i * self.batch_size:to]
+                #loss = cross_E(true, prediction)
+                #self.backward(loss)
+                #self.backward(cross_E(, prediction.T))
                 self.backward((y[i * self.batch_size:to] - prediction.T).T)
 
 
 class Layer:
     def __init__(self, in_dim, out_dim, activation_fun, activation_back, lr):
-        self.weights = np.random.random((in_dim, out_dim))/(in_dim + out_dim)
+        self.weights = np.random.random((in_dim, out_dim)) / (in_dim + out_dim)
         self.n_inputs = in_dim
         self.n_outputs = out_dim
-        self.biases = np.random.random((1, out_dim))/(in_dim + out_dim)
+        self.biases = np.random.random((1, out_dim)) / (in_dim + out_dim)
         self.activation = activation_fun
         self.activation_back = activation_back
         self.lr = lr
@@ -121,7 +129,12 @@ if __name__ == "__main__":
     # data = input_n
     # y = target
 
-    net = NN(4, 5, 2, 1, n_epochs=200, lr=0.01)
+
+    #TODO WE CAN FUCKING USE AN OPTIMIZER TO GET WEIGHTS AND BIASES NO NEED FOR THIS ENTIRE BOLLSHUT ASSS GUCKAWRTASFGAFSB ATA FH Gfv
+
+
+
+    net = NN(4, 5, 2, 1, n_epochs=200, lr=0.1)
     net.train(data, y, None, None)
     print(net.forward(np.array([[3, 4],[0,0], [-4,4], [4,1]])))
     print(net.forward(np.array([[4, 3], [0,1]])))
