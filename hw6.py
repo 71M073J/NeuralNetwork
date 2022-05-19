@@ -1,5 +1,5 @@
 import numpy as np
-
+import scipy.optimize as op
 
 def Sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -88,9 +88,17 @@ class NN:
         return temp
 
     def backward(self, err):
-        temp = err
+
+        #temp = (true - predicted.T).T
+        temp = err.copy()
+        grads = []
         for layer in reversed(self.layers):
-            temp = layer.backward(temp)
+            temp, grad = layer.get_grad_err(temp)
+            grads.append(grad)
+        grads = np.zeros(sum([len(x) for x in grads]))
+        print(grads)
+
+
 
     def train(self, X, y, n_epochs, test=None, verbose=False):
         for epoch in range(n_epochs):
@@ -101,66 +109,44 @@ class NN:
                 to = (i + 1) * self.batch_size if (i + 1) * self.batch_size < len(y) else len(y)
                 X_train = X[i * self.batch_size:to, :]
                 prediction = self.forward(X_train)
-                # za regresijo
-                self.backward((y[i * self.batch_size:to] - prediction.T).T)  # odvod MSE
-                # self.backward(delta_cross_entropy(prediction, y[i * self.batch_size:to]))
+                #res = op.fmin_l_bfgs_b(funct, params, fprime=self.backward())
+                self.backward(y[i * self.batch_size:to] - prediction.T)  # odvod MSE
 
 
 class Layer:
     def __init__(self, in_dim, out_dim, activation_fun, activation_back, lr, batch):
-        np.random.seed(1)
-        self.weights = np.random.random((in_dim, out_dim)) / (in_dim * out_dim)
+        self.weights = np.random.random((in_dim + 1, out_dim)) / (in_dim * out_dim)
         self.n_inputs = in_dim
         self.batch_size = batch
         self.n_outputs = out_dim
-        self.biases = np.random.random((1, out_dim)) / (in_dim * out_dim)
+        #self.biases = np.random.random((1, out_dim)) / (in_dim * out_dim)
         self.activation = activation_fun
         self.activation_back = activation_back
         self.lr = lr
-        self.current = None
+        self.input = None
         self.out = None
 
     def forward(self, input_data):
-        self.current = input_data
-        self.out = self.activation(self.current.dot(self.weights) + self.biases)
+        self.input = np.hstack((np.ones((input_data.shape[0], 1)), input_data))
+        self.out = self.activation(np.hstack((np.ones((input_data.shape[0], 1)), input_data)).dot(self.weights))
         return self.out
 
-    def backward(self, err):
-        pred_err = np.zeros((err.shape[0], self.n_inputs))
-        dw = np.zeros(self.weights.shape)
-        db = np.zeros(self.biases.shape)
-        online_update = True
-        for i in range(err.shape[0]):
-            activation_err = self.activation_back(self.out[i], err[i])
-            gradient = self.current[i, :].reshape(-1, 1).dot(np.atleast_2d(activation_err))
-            pred_err[i, :] = self.weights.dot(activation_err.T).T
-            if online_update:
-                self.weights += self.lr * gradient / self.batch_size
-                self.biases += self.lr * activation_err / self.batch_size
-            else:
-                dw += self.lr * gradient / self.batch_size
-                db += self.lr * activation_err / self.batch_size
-        if not online_update:
-            self.weights += dw
-            self.biases += db
-
-
-
-        # print(temp, self.weights)
-        # this gives the same results...?
-        # just change softmax back to go case by case
-        # activation_err = self.activation_back(self.out, err)
-        # gradient = self.current.T.dot(np.atleast_2d(activation_err))
-        # pred_err = self.weights.dot(activation_err.T).T
-        # self.weights += self.lr * gradient/self.batch_size
-        # self.biases += self.lr * activation_err.sum(axis=0)/self.batch_size
+    def get_grad_err(self, err):
+        #print(temp, self.weights)
+        #this gives the same results...?
+        #just change softmax back to go case by case
+        activation_err = self.activation_back(self.out, err) # odvod po
+        gradient = self.input.T.dot(np.atleast_2d(activation_err).T)
+        pred_err = self.weights.dot(activation_err)
+        #self.weights += self.lr * gradient/self.batch_size
+        #self.biases += self.lr * activation_err.sum(axis=0)/self.batch_size
 
         # print(self.biases)
-        return pred_err
+        return pred_err, gradient
 
 
 class ANNRegression:
-    def __init__(self, units, lambda_, lr=5, n_epochs=5000):
+    def __init__(self, units, lambda_, lr=10, n_epochs=5000):
         self.layers = units
         self.lambda_ = lambda_
         self.model = None
@@ -218,10 +204,10 @@ if __name__ == "__main__":
     #TODO TODO TODO TODO TODO TODO TODO REGULARIZACIJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     # two hidden layers
-    fitter = ANNRegression(units=[13, 6], lambda_=0.0001)
+    fitter = ANNRegression(units=[2], lambda_=0.0001)
     m = fitter.fit(X, hard_y)
     pred = m.predict(X)
     np.testing.assert_allclose(pred, hard_y, atol=0.01)
     #https: // www.adeveloperdiary.com / data - science / deep - learning / neural - network - with-softmax - in -python /
-    https: // medium.com / @ neuralthreads / backpropagation - made - super - easy -
-    for -you - part - 2 - 7b2a06f25f3c
+    #https: // medium.com / @ neuralthreads / backpropagation - made - super - easy -
+    #for -you - part - 2 - 7b2a06f25f3c
