@@ -83,8 +83,11 @@ class NN:
 
     def forward(self, input_data):
         temp = input_data.copy()
-        for layer in self.layers:
-            temp = layer.forward(temp)
+        for i, layer in enumerate(self.layers):
+            if i == len(self.layers) - 1:
+                temp = layer.forward(temp, last=True)
+            else:
+                temp = layer.forward(temp)
         return temp
 
     def backward(self, err):
@@ -92,7 +95,7 @@ class NN:
         #temp = (true - predicted.T).T
         temp = err.copy()
         grads = []
-        for layer in reversed(self.layers):
+        for i, layer in enumerate(reversed(self.layers)):
             temp, grad = layer.get_grad_err(temp)
             grads.append(grad)
         grads = np.zeros(sum([len(x) for x in grads]))
@@ -110,7 +113,7 @@ class NN:
                 X_train = X[i * self.batch_size:to, :]
                 prediction = self.forward(X_train)
                 #res = op.fmin_l_bfgs_b(funct, params, fprime=self.backward())
-                self.backward(y[i * self.batch_size:to] - prediction.T)  # odvod MSE
+                self.backward((y[i * self.batch_size:to] - prediction.T).reshape(-1, 1))  # odvod MSE
 
 
 class Layer:
@@ -126,18 +129,21 @@ class Layer:
         self.input = None
         self.out = None
 
-    def forward(self, input_data):
+    def forward(self, input_data, last=False):
+        #if last:
+        #    self.input = input_data
+        #else:
         self.input = np.hstack((np.ones((input_data.shape[0], 1)), input_data))
-        self.out = self.activation(np.hstack((np.ones((input_data.shape[0], 1)), input_data)).dot(self.weights))
+        self.out = self.activation(self.input.dot(self.weights))
         return self.out
 
     def get_grad_err(self, err):
         #print(temp, self.weights)
         #this gives the same results...?
         #just change softmax back to go case by case
-        activation_err = self.activation_back(self.out, err) # odvod po
-        gradient = self.input.T.dot(np.atleast_2d(activation_err).T)
-        pred_err = self.weights.dot(activation_err)
+        activation_err = self.activation_back(self.out.T, err).T # odvod po ????
+        gradient = self.input.T.dot(activation_err.T)#/self.batch_size
+        pred_err = self.weights[1:].dot(activation_err.T)
         #self.weights += self.lr * gradient/self.batch_size
         #self.biases += self.lr * activation_err.sum(axis=0)/self.batch_size
 
