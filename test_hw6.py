@@ -61,7 +61,7 @@ class HW6Tests(unittest.TestCase):
         self.assertEqual(pred.shape, (4,))
         np.testing.assert_allclose(pred, 0.5, atol=0.01)
 
-    def test_ann_regression_hidden_layer_hard(self):
+    def test_ann_regression_hidden_layer_hard_1(self):
         # one hidden layer
         fitter = ANNRegression(units=[10], lambda_=0.0001)
         m = fitter.fit(self.X, self.hard_y)
@@ -69,7 +69,7 @@ class HW6Tests(unittest.TestCase):
         self.assertEqual(pred.shape, (4,))
         np.testing.assert_allclose(pred, self.hard_y, atol=0.01)
 
-    def test_ann_regression_hidden_layer_hard_(self):
+    def test_ann_regression_hidden_layer_hard_2(self):
         # two hidden layers
         fitter = ANNRegression(units=[13, 6], lambda_=0.0001)
         m = fitter.fit(self.X, self.hard_y)
