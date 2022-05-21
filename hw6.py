@@ -231,7 +231,7 @@ class NN:
         print(test_grad)
         print(abs(test_grad - r[1]))
 
-    def train(self, X, y, n_epochs, test=None, verbose=False, report_epochs=10):
+    def train(self, X, y, n_epochs, test=None, verbose=False, report_epochs=10, tests=True):
 
         again = False
         mins = 123415123
@@ -263,6 +263,7 @@ class NN:
                 #                       approx_grad=False)
 
                 yt = y[i * self.batch_size:to]
+
                 res = op.fmin_l_bfgs_b(func=self.weights_to_loss, args=(X_train, yt),
                                        x0=x0#, factr=1e-5, pgtol=1e-9
                                        )  # ,
@@ -273,7 +274,14 @@ class NN:
                 #print(self.weights_to_loss(x0, X_train, y[i * self.batch_size:to]))
                 # fprime=self.batch_grad)
                 h = self.weights_to_loss(res[0], X_train, y[i * self.batch_size:to])[0]
-
+                if tests:
+                    if h + 0.1 < mins:
+                        mins = np.mean(hs)
+                    else:
+                        if again:
+                            return
+                        else:
+                            again = True
                 hs.append(h)
             if np.mean(hs) + 0.1 < mins:
                 mins = np.mean(hs)
@@ -315,9 +323,9 @@ class ANNRegression:
         self.lambda_ = lambda_
         self.model = None
 
-    def fit(self, X, y, n_epochs=50, batch=64, verbose=False, rep_epochs=10):
+    def fit(self, X, y, n_epochs=50, batch=64, verbose=False, rep_epochs=10, tests=True):
         self.model = NN(len(self.layers), self.layers, X.shape[1], 1, batch_size=batch)
-        self.model.train(X, y, n_epochs, verbose=verbose, report_epochs=rep_epochs)
+        self.model.train(X, y, n_epochs, verbose=verbose, report_epochs=rep_epochs, tests=tests)
         return self
 
     def predict(self, X):
@@ -333,11 +341,11 @@ class ANNClassification:
         self.lambda_ = lambda_
         self.model = None
 
-    def fit(self, X, y, n_epochs=50, batch=64, verbose=False, rep_epochs=10):
+    def fit(self, X, y, n_epochs=50, batch=64, verbose=False, rep_epochs=10, tests=True):
         self.model = NN(len(self.layers), self.layers, X.shape[1], np.unique(y).shape[0], batch_size=batch,
                         classification=True)
         y = onehot(y)
-        self.model.train(X, y, n_epochs, verbose=verbose, report_epochs=rep_epochs)
+        self.model.train(X, y, n_epochs, verbose=verbose, report_epochs=rep_epochs, tests=tests)
         return self
 
     def predict(self, X):
@@ -376,7 +384,7 @@ def three():
         X_train, X_test, y_train, y_test = train_test_split(data, cls, test_size=0.33, random_state=420)
         nn = ANNRegression([5], 0.01)
         #print("split data, fitting")
-        nn.fit(X_train, y_train, verbose=False, rep_epochs=1, batch=999999999)
+        nn.fit(X_train, y_train, verbose=False, rep_epochs=1, batch=999999999, tests=False)
         #print("fit nn")
         reg.fit(X_train, y_train)
         #print("fit both models")
@@ -396,7 +404,7 @@ def three():
         X_train, X_test, y_train, y_test = train_test_split(data, cls, test_size=0.33, random_state=420)
         nn = ANNClassification([5], 0.001)
         #print("split data, fitting")
-        nn.fit(X_train, y_train.astype(int), verbose=False, rep_epochs=1, batch=999999999)
+        nn.fit(X_train, y_train.astype(int), verbose=False, rep_epochs=1, batch=999999999, tests=False)
         #print("fit nn")
         reg.fit(X_train, y_train)
         #print("fit both models")
@@ -432,7 +440,7 @@ def create_final_predictions():
     print(X_train.shape, y_train.shape)
     nn = ANNClassification([64, 16], 0.1)
     start = time.time()
-    nn.fit(X_train, y_train.astype(int), verbose=True, rep_epochs=1, batch=999999999)
+    nn.fit(X_train, y_train.astype(int), verbose=True, rep_epochs=1, batch=999999999, tests=False)
     end = time.time()
     p = nn.predict(X_test)
     endpred = time.time()
@@ -441,8 +449,9 @@ def create_final_predictions():
         print(",".join(['id', 'Class_1', 'Class_2', 'Class_3', 'Class_4',
                                          'Class_5', 'Class_6', 'Class_7', 'Class_8', 'Class_9']), file=f)
         for i in range(p.shape[0]):
-            print(str(i) + "," + ",".join([str(x) for x in p[i]]), file=f)
+            print(str(i + 1) + "," + ",".join([str(x) for x in p[i]]), file=f)
         print(f"total time elapsed: {end - start} seconds for fitting, \n{endpred - end} seconds for predicting test")
+
 
 if __name__ == "__main__":
     #three()
